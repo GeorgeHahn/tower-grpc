@@ -44,13 +44,7 @@ pub fn main() {
             Greeter::new(conn)
         })
         .and_then(|mut client| {
-            use hello_world::HelloRequest;
-
-            client
-                .say_hello(Request::new(HelloRequest {
-                    name: "What is in a name?".to_string(),
-                }))
-                .map_err(|e| panic!("gRPC request failed; err={:?}", e))
+            say_hello_with(client).map_err(|e| panic!("gRPC request failed; err={:?}", e))
         })
         .and_then(|response| {
             println!("RESPONSE = {:?}", response);
@@ -61,6 +55,20 @@ pub fn main() {
         });
 
     tokio::run(say_hello);
+}
+
+fn say_hello_with<C, T, R>(
+    client: hello_world::client::Greeter<C>,
+) -> tower_grpc::client::unary::ResponseFuture<R, T::Future, T::ResponseBody>
+where
+    T: tower_grpc::generic::client::GrpcService<R>,
+    tower_grpc::client::unary::Once<T>: tower_grpc::client::Encodable<R>,
+{
+    use hello_world::HelloRequest;
+
+    client.say_hello(Request::new(HelloRequest {
+        name: "What is in a name?".to_string(),
+    }))
 }
 
 struct Dst;
